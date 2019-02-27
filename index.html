@@ -1,0 +1,109 @@
+<html>
+    <head>
+      <script src="/socket.io.js"></script>
+    </head>
+    <body>
+
+        <canvas id="myCanvas" >
+
+        </canvas>
+
+    </body>
+    <script>
+      var socket = io();
+      var canvas = document.getElementById("myCanvas")
+      var context = canvas.getContext("2d")
+      var bg_gradient = context.createLinearGradient(0,0,1640,480)
+      var cell_size = 20
+      var my_id = 0
+      bg_gradient.addColorStop(0,'blanchedalmond')
+      bg_gradient.addColorStop(1,'cadetblue')
+      document.addEventListener("keydown",updateInput)
+      canvas.width = 640
+      canvas.height = 480
+
+      socket.on('gamestate',function( msg ){
+        drawFromState( msg.data )
+      })
+      socket.on('id',function(id){
+        console.log("My id: " , id )
+        my_id = id
+      })
+
+      function drawFromState( gamestate ){
+        var grid_width = gamestate.grid.width
+        var grid_height = gamestate.grid.height
+        
+        // Background
+        context.fillStyle = bg_gradient
+        context.fillRect( 0 , 0 , 640 , 480 )
+        
+        // Snakes
+        for( var loc in gamestate.grid.cells ){
+          var x = loc % gamestate.grid.width
+          var y = Math.floor( loc / gamestate.grid.width )
+          var id = gamestate.grid.cells[loc]
+          context.fillStyle = generatePlayerColor(id)
+          context.fillRect( x*cell_size , y*cell_size , cell_size , cell_size )
+        }
+        
+        // Grid
+        context.beginPath()
+        context.lineWidth = 4
+        context.strokeStyle = "rgba(0,0,0,0.5)"
+        for( var x = cell_size ; x < cell_size*grid_width ; x += cell_size ){
+          context.moveTo( x , 0 )
+          context.lineTo( x , cell_size*grid_height )
+        }
+        for( var y = cell_size ; y < cell_size*grid_height ; y += cell_size ){
+          context.moveTo( 0 , y )
+          context.lineTo( cell_size*grid_width , y )
+        }
+        context.stroke()
+
+        // Food
+        context.beginPath()
+        context.lineWidth = 3
+        context.fillStyle = "blue"
+        context.strokeStyle = "blue"
+        context.arc( gamestate.food.x*cell_size + cell_size*0.5 , gamestate.food.y*cell_size + cell_size*0.5 , cell_size*0.5 - 2 , 0 , Math.PI*2.0 )
+        context.stroke()
+
+      }
+
+      function updateInput(e){
+        if( !e.repeat ){
+          switch( e.code ){
+            case "ArrowLeft":
+              socket.emit("input", 2 )
+              break
+            case "ArrowRight":
+              socket.emit("input", 0 )
+              break
+            case "ArrowUp":
+              socket.emit("input", 1 )
+              break
+            case "ArrowDown":
+              socket.emit("input", 3 )
+              break
+          }
+        }
+      }
+
+      function generatePlayerColor( id ){
+        switch(id){
+          case 0:
+            return "red"
+          case 1:
+            return "green"
+          case 2:
+            return "darkslateblue"
+          case 3:
+            return "magenta"
+          default:
+            return "black"
+        }
+      }
+
+    </script>
+</html>
